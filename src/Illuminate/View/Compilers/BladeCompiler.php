@@ -18,6 +18,7 @@ class BladeCompiler extends Compiler implements CompilerInterface
         Concerns\CompilesClasses,
         Concerns\CompilesComments,
         Concerns\CompilesComponents,
+        Concerns\CompilesIgnores,
         Concerns\CompilesConditionals,
         Concerns\CompilesEchos,
         Concerns\CompilesErrors,
@@ -247,11 +248,14 @@ class BladeCompiler extends Compiler implements CompilerInterface
      */
     public function compileString($value)
     {
+
         [$this->footer, $result] = [[], ''];
 
         // First we will compile the Blade component tags. This is a precompile style
         // step which compiles the component Blade tags into @component directives
         // that may be used by Blade. Then we should call any other precompilers.
+        [$ignores, $value] = $this->compileIgnores($value);
+
         $value = $this->compileComponentTags(
             $this->compileComments($this->storeUncompiledBlocks($value))
         );
@@ -280,6 +284,10 @@ class BladeCompiler extends Compiler implements CompilerInterface
 
         if (! empty($this->echoHandlers)) {
             $result = $this->addBladeCompilerVariable($result);
+        }
+
+        foreach ($ignores as $ignore => $ignoreValue) {
+            $result = str_replace($ignore, $ignoreValue, $result);
         }
 
         return str_replace(
